@@ -6,31 +6,65 @@ import PokemonCard from "./components/pokemonCard.jsx";
 function App() {
     const [pokemonId, setPokemonId] = useState([])
     const [forwardPage, setForwardPage] = useState("")
-    // const [prevPage, setPrevPage] = useState("")
-    // const [loading, setLoading] = useState("")
+    const [prevPage, setPrevPage] = useState("")
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(false)
 
     useEffect(() => {
+        const abortController = new AbortController();
         async function fetchPokemons () {
+            setLoading(true);
+            setError(false);
             try {
-                const response = await axios.get("https://pokeapi.co/api/v2/pokemon/")
+                const response = await axios.get("https://pokeapi.co/api/v2/pokemon/",
+                    {signal:abortController.signal,
+                })
                 setPokemonId(response.data.results)
+                setForwardPage(response.data.next)
+                setPrevPage(response.data.previous)
             } catch (e) {
-                console.log(e.message)
+                setError(true)
+                console.error(e.message)
             }
+            setLoading(false)
         }
-        return fetchPokemons;
-    },[])
 
-    async function nextPage () {
+        void fetchPokemons();
+
+        // return () => {
+        //     abortController.abort()
+        // } Hij gebruikt deze abortcontroller te vroeg wanneer je dit aanzet.. Krijg je bij mount direct een cancel. How?
+    },[]);
+
+    async function fetchNextPage () {
+        setLoading(true)
+        setError(false);
         try {
-            const responsePage = await axios.get("https://pokeapi.co/api/v2/pokemon/?limit=20&offset=20")
+            const responsePage = await axios.get(forwardPage)
+            setPokemonId(responsePage.data.results)
             setForwardPage(responsePage.data.next)
+            setPrevPage(responsePage.data.previous)
         } catch (e) {
-            console.log(e.message)
+            setError(true)
+            console.error(e.message)
         }
+        setLoading(false)
     }
 
-    console.log(forwardPage)
+    async function fetchPrevPage () {
+        setLoading(true);
+        setError(false);
+        try {
+            const responsePage = await axios.get(prevPage)
+            setPokemonId(responsePage.data.results)
+            setForwardPage(responsePage.data.next)
+            setPrevPage(responsePage.data.previous)
+        } catch (e) {
+            setError(true);
+            console.error(e.message)
+        }
+        setLoading(false)
+    }
 
 
   return (
@@ -39,18 +73,20 @@ function App() {
             <h1>Gotta catch em all!</h1>
         </header>
         <div className="container buttons">
-            <button type="button">Vorige</button>
-            <button type="button" onClick={nextPage}>Volgende</button>
+            <button type="button" onClick={fetchPrevPage} disabled={!prevPage || loading}>Vorige</button>
+            <button type="button" onClick={fetchNextPage} disabled={!forwardPage || loading}>Volgende</button>
         </div>
-        <div className="container">
-            <ul className="card-overview">
-                {pokemonId.map((url) =>{
-                    return <li key={url.name}><PokemonCard giveUrl={url.url}/></li>
-                })}
+        {loading && !error ? <p>Loading ...</p> : error ? <p>Er ging iets mis, please try again later</p>
+            :
+            <div className="container">
+                <ul className="card-overview">
+                    {pokemonId.map((url) =>{
+                        return <li key={url.name}><PokemonCard giveUrl={url.url}/></li>
+                    })}
+                </ul>
 
-            </ul>
-
-        </div>
+            </div>
+        }
     </>
   )
 }

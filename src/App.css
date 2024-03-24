@@ -3,11 +3,9 @@
     min-width: 1200px;
     margin-block: auto;
     padding-inline: 2rem;
-    border: 1px solid red;
 }
 
 .card {
-    border: 1px dashed darkgreen;
     background-color: white;
     width: 200px;
     height: 400px;
@@ -32,7 +30,6 @@ ul {
 
 .card-overview {
     padding-block: 20px;
-    border: 1px solid grey;
     max-width: 1200px;
 
     display: flex;
